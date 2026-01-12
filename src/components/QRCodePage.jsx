@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import headerImg from '../assets/access-card-iyke-agwu.png';
 import GuestListModal from './GuestListModal';
+import { API_BASE_URL } from '../config';
 
 const QRCodePage = () => {
   const [guestName, setGuestName] = useState('');
@@ -19,7 +20,7 @@ const QRCodePage = () => {
     setGeneratedKey(null);
     
     try {
-        const response = await fetch('http://localhost:3000/api/generate', {
+        const response = await fetch(`${API_BASE_URL}/api/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ guestName })
@@ -62,6 +63,9 @@ const QRCodePage = () => {
         link.click();
       } else if (format === 'pdf') {
         const imgData = canvas.toDataURL('image/png');
+        
+        /* 
+        // OLD A6 LOGIC (Commented Out)
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
@@ -72,6 +76,17 @@ const QRCodePage = () => {
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
         
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`${guestName.replace(/\s+/g, '_')}_Invite.pdf`);
+        */
+
+        // Use canvas dimensions for PDF size to ensure no truncation
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px', // Use pixels to match canvas
+          format: [canvas.width, canvas.height] 
+        });
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
         pdf.save(`${guestName.replace(/\s+/g, '_')}_Invite.pdf`);
       }
     } catch (err) {

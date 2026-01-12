@@ -3,6 +3,7 @@ import ConfirmationPage from './components/ConfirmationPage';
 import AlreadyScanned from './components/AlreadyScanned';
 import QRCodePage from './components/QRCodePage';
 import LoginPage from './components/LoginPage';
+import { API_BASE_URL } from './config';
 
 function App() {
   const [status, setStatus] = useState('loading'); // 'loading', 'confirmed', 'invalid', 'generator'
@@ -65,7 +66,7 @@ function App() {
         if (params.get('bypass') === 'true') {
              setStatus('confirmed');
              try {
-                const res = await fetch('http://localhost:3000/api/stats');
+                const res = await fetch(`${API_BASE_URL}/api/stats`);
                 if (res.ok) {
                     const statsData = await res.json();
                     setScannedStats(statsData);
@@ -80,7 +81,7 @@ function App() {
         }
 
         try {
-            const response = await fetch('http://localhost:3000/api/validate', {
+            const response = await fetch(`${API_BASE_URL}/api/validate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: guestToken })
@@ -90,9 +91,14 @@ function App() {
             const data = await response.json();
 
             if (data.valid) {
-                setStatus('confirmed');
-                setGuestName(data.guestName);
-                if (data.stats) setScannedStats(data.stats);
+                // If it was already scanned before this request, reject it
+                if (data.scanned) {
+                    setStatus('invalid');
+                } else {
+                    setStatus('confirmed');
+                    setGuestName(data.guestName);
+                    if (data.stats) setScannedStats(data.stats);
+                }
             } else {
                 setStatus('invalid');
             }
@@ -144,7 +150,7 @@ function App() {
       {status === 'invalid' && <AlreadyScanned />}
       
       {/* Dev Navigation & Reset */}
-      <div className="fixed bottom-4 right-4 flex gap-2 opacity-10 hover:opacity-100 transition-opacity z-50">
+      <div className="fixed bottom-4 left-4 flex gap-2 opacity-10 hover:opacity-100 transition-opacity z-50">
         <button 
           onClick={() => window.location.search = '?admin=true'}
           className="bg-white/5 text-white px-3 py-1 rounded text-[10px] border border-white/10"
